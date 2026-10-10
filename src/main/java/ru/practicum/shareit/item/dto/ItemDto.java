@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import ru.practicum.shareit.validation.Create;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -25,4 +27,7 @@ public class ItemDto {
     private Boolean available;
 
     private Long requestId;
+    private ItemBookingDto lastBooking;
+    private ItemBookingDto nextBooking;
+    private List<CommentDto> comments;
 }
