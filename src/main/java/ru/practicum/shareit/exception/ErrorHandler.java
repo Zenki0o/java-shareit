@@ -18,21 +18,21 @@ public class ErrorHandler {
     @ExceptionHandler(NotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     public ErrorResponse handleNotFound(final NotFoundException e) {
-        log.warn("Объект не найден: {}", e.getMessage());
+        log.error("Объект не найден: {}", e.getMessage());
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler(ConflictException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflict(final ConflictException e) {
-        log.warn("Конфликт данных: {}", e.getMessage());
+        log.error("Конфликт данных: {}", e.getMessage());
         return new ErrorResponse(e.getMessage());
     }
 
     @ExceptionHandler(BadRequestException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleBadRequest(final BadRequestException e) {
-        log.warn("Некорректный запрос: {}", e.getMessage());
+        log.error("Некорректный запрос: {}", e.getMessage());
         return new ErrorResponse(e.getMessage());
     }
 
@@ -43,7 +43,7 @@ public class ErrorHandler {
                 .findFirst()
                 .map(error -> error.getDefaultMessage())
                 .orElse(e.getMessage());
-        log.warn("Ошибка валидации: {}", message);
+        log.error("Ошибка валидации: {}", message);
         return new ErrorResponse(message);
     }
 
@@ -55,7 +55,7 @@ public class ErrorHandler {
     })
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleBadRequest(final Exception e) {
-        log.warn("Некорректный запрос: {}", e.getMessage());
+        log.error("Некорректный запрос: {}", e.getMessage());
         return new ErrorResponse(e.getMessage());
     }
 
@@ -65,7 +65,7 @@ public class ErrorHandler {
         String message = "state".equals(e.getName())
                 ? "Unknown state: " + e.getValue()
                 : e.getMessage();
-        log.warn("Некорректный запрос: {}", message);
+        log.error("Некорректный запрос: {}", message);
         return new ErrorResponse(message);
     }
 
