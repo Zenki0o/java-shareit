@@ -3,6 +3,7 @@ package ru.practicum.shareit.exception;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingRequestHeaderException;
@@ -44,6 +45,16 @@ public class ErrorHandler {
     public ErrorResponse handleBadRequest(final Exception e) {
         log.error("Некорректный запрос: {}", e.getMessage());
         return new ErrorResponse(e.getMessage());
+    }
+
+    @ExceptionHandler(ServerHttpException.class)
+    public ResponseEntity<byte[]> handleServerHttp(final ServerHttpException e) {
+        log.error("Ошибка сервера: {}", e.getStatus());
+        ResponseEntity.BodyBuilder builder = ResponseEntity.status(e.getStatus());
+        if (e.getContentType() != null) {
+            builder.contentType(e.getContentType());
+        }
+        return builder.body(e.getBody());
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

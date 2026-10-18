@@ -2,7 +2,9 @@ package ru.practicum.shareit.client;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -11,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.lang.Nullable;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.RestTemplate;
+import ru.practicum.shareit.exception.ServerHttpException;
 
 public class BaseClient {
     protected final RestTemplate rest;
@@ -24,7 +27,7 @@ public class BaseClient {
     }
 
     protected ResponseEntity<Object> get(String path, long userId) {
-        return get(path, userId, null);
+        return makeAndSendRequest(HttpMethod.GET, path, userId, null, null);
     }
 
     protected ResponseEntity<Object> get(String path, Long userId, @Nullable Map<String, Object> parameters) {
@@ -82,27 +85,60 @@ public class BaseClient {
         return makeAndSendRequest(HttpMethod.DELETE, path, userId, parameters, null);
     }
 
+    protected <R> ResponseEntity<R> get(String path, long userId, Class<R> responseType) {
+        return get(path, userId, null, responseType);
+    }
+
+    protected <R> ResponseEntity<R> get(String path, Long userId, @Nullable Map<String, Object> parameters,
+                                        Class<R> responseType) {
+        return send(HttpMethod.GET, path, userId, parameters, null, responseType);
+    }
+
+    protected <R> ResponseEntity<R> get(String path, long userId, ParameterizedTypeReference<R> responseType) {
+        return get(path, userId, null, responseType);
+    }
+
+    protected <R> ResponseEntity<R> get(String path, Long userId, @Nullable Map<String, Object> parameters,
+                                        ParameterizedTypeReference<R> responseType) {
+        return send(HttpMethod.GET, path, userId, parameters, null, responseType);
+    }
+
+    protected <R, T> ResponseEntity<R> post(String path, long userId, T body, Class<R> responseType) {
+        return send(HttpMethod.POST, path, userId, null, body, responseType);
+    }
+
     private <T> ResponseEntity<Object> makeAndSendRequest(HttpMethod method, String path, Long userId,
                                                           @Nullable Map<String, Object> parameters,
                                                           @Nullable T body) {
-        HttpEntity<T> requestEntity = new HttpEntity<>(body, defaultHeaders(userId));
+        return send(method, path, userId, parameters, body, Object.class);
+    }
 
-        ResponseEntity<Object> shareitServerResponse;
-        try {
-            if (parameters != null) {
-                shareitServerResponse = rest.exchange(path, method, requestEntity, Object.class, parameters);
-            } else {
-                shareitServerResponse = rest.exchange(path, method, requestEntity, Object.class);
-            }
-        } catch (HttpStatusCodeException e) {
-            ResponseEntity.BodyBuilder builder = ResponseEntity.status(e.getStatusCode());
-            HttpHeaders responseHeaders = e.getResponseHeaders();
-            if (responseHeaders != null && responseHeaders.getContentType() != null) {
-                builder.contentType(responseHeaders.getContentType());
-            }
-            return builder.body(e.getResponseBodyAsByteArray());
+    private <R> ResponseEntity<R> send(HttpMethod method, String path, Long userId,
+                                       @Nullable Map<String, Object> parameters, @Nullable Object body,
+                                       Class<R> responseType) {
+        HttpEntity<Object> requestEntity = new HttpEntity<>(body, defaultHeaders(userId));
+        if (parameters != null) {
+            return invoke(() -> rest.exchange(path, method, requestEntity, responseType, parameters));
         }
-        return prepareGatewayResponse(shareitServerResponse);
+        return invoke(() -> rest.exchange(path, method, requestEntity, responseType));
+    }
+
+    private <R> ResponseEntity<R> send(HttpMethod method, String path, Long userId,
+                                       @Nullable Map<String, Object> parameters, @Nullable Object body,
+                                       ParameterizedTypeReference<R> responseType) {
+        HttpEntity<Object> requestEntity = new HttpEntity<>(body, defaultHeaders(userId));
+        if (parameters != null) {
+            return invoke(() -> rest.exchange(path, method, requestEntity, responseType, parameters));
+        }
+        return invoke(() -> rest.exchange(path, method, requestEntity, responseType));
+    }
+
+    private <R> ResponseEntity<R> invoke(Supplier<ResponseEntity<R>> request) {
+        try {
+            return prepareGatewayResponse(request.get());
+        } catch (HttpStatusCodeException e) {
+            throw new ServerHttpException(e);
+        }
     }
 
     private HttpHeaders defaultHeaders(Long userId) {
@@ -115,7 +151,7 @@ public class BaseClient {
         return headers;
     }
 
-    private static ResponseEntity<Object> prepareGatewayResponse(ResponseEntity<Object> response) {
+    private static <R> ResponseEntity<R> prepareGatewayResponse(ResponseEntity<R> response) {
         if (response.getStatusCode().is2xxSuccessful()) {
             return response;
         }

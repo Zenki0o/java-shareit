@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
@@ -25,15 +26,15 @@ public class ItemRequestClient extends BaseClient {
                 .build());
     }
 
-    public ResponseEntity<Object> create(long userId, ItemRequestDto itemRequestDto) {
-        return post("", userId, itemRequestDto);
+    public ResponseEntity<ItemRequestDto> create(long userId, ItemRequestDto itemRequestDto) {
+        return post("", userId, itemRequestDto, ItemRequestDto.class);
     }
 
-    public ResponseEntity<Object> getOwn(long userId) {
-        return get("", userId);
+    public ResponseEntity<List<ItemRequestDto>> getOwn(long userId) {
+        return get("", userId, new ParameterizedTypeReference<>() { });
     }
 
-    public ResponseEntity<Object> getAll(long userId, Integer from, Integer size) {
+    public ResponseEntity<List<ItemRequestDto>> getAll(long userId, Integer from, Integer size) {
         Map<String, Object> parameters = new HashMap<>();
         List<String> parts = new ArrayList<>();
         if (from != null) {
@@ -45,12 +46,12 @@ public class ItemRequestClient extends BaseClient {
             parts.add("size={size}");
         }
         if (parameters.isEmpty()) {
-            return get("/all", userId);
+            return get("/all", userId, new ParameterizedTypeReference<>() { });
         }
-        return get("/all?" + String.join("&", parts), userId, parameters);
+        return get("/all?" + String.join("&", parts), userId, parameters, new ParameterizedTypeReference<>() { });
     }
 
-    public ResponseEntity<Object> getById(long userId, Long requestId) {
-        return get("/" + requestId, userId);
+    public ResponseEntity<ItemRequestDto> getById(long userId, Long requestId) {
+        return get("/" + requestId, userId, ItemRequestDto.class);
     }
 }
